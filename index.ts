@@ -114,6 +114,11 @@ const SEARCH_ICD10CM_TOOL = {
       description: 'Returns 7 specific respiratory tuberculosis diagnoses (A15 series) by using the q parameter to filter codes starting with "A15"',
       usage: '{ "terms": "tuberc", "q": "code:A15*" }',
       response: '{ "total": 7, "codes": [{ "code": "A15.0", "name": "Tuberculosis of lung" }, { "code": "A15.4", "name": "Tuberculosis of intrathoracic lymph nodes" }, { "code": "A15.5", "name": "Tuberculosis of larynx, trachea and bronchus" }, { "code": "A15.6", "name": "Tuberculous pleurisy" }, { "code": "A15.7", "name": "Primary respiratory tuberculosis" }, { "code": "A15.8", "name": "Other respiratory tuberculosis" }, { "code": "A15.9", "name": "Respiratory tuberculosis unspecified" }] }'
+    },
+    {
+      description: 'Returns all diagnoses starting with code A02 (Salmonella infections) by searching directly for the code prefix',
+      usage: '{ "terms": "A02" }',
+      response: '{ "total": 11, "codes": [{ "code": "A02.0", "name": "Salmonella enteritis" }, { "code": "A02.1", "name": "Salmonella sepsis" }, { "code": "A02.20", "name": "Localized salmonella infection, unspecified" }, { "code": "A02.21", "name": "Salmonella meningitis" }, { "code": "A02.22", "name": "Salmonella pneumonia" }, { "code": "A02.23", "name": "Salmonella arthritis" }, { "code": "A02.24", "name": "Salmonella osteomyelitis" }] }'
     }
   ]
 };
