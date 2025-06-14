@@ -8,6 +8,10 @@ import fetch from 'node-fetch';
 import type { Response } from 'node-fetch';
 import 'dotenv/config';
 import http from 'http';
+import { createServer } from "http";
+import { URL } from "url";
+import { URLSearchParams } from "url";
+import { Tool } from "./types";
 
 /**
  * Logging utility for consistent log format across the application
@@ -67,6 +71,7 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const TRANSPORT = process.env.TRANSPORT || 'stdio';
 const SSE_PATH = process.env.SSE_PATH || '/mcp';
 const NLM_API_BASE_URL = "https://clinicaltables.nlm.nih.gov/api/icd10cm/v3";
+const NPI_API_BASE_URL = "https://clinicaltables.nlm.nih.gov/api/npi_org/v3";
 
 // Tool definition for ICD-10-CM search
 const SEARCH_ICD10CM_TOOL = {
@@ -111,7 +116,7 @@ const SEARCH_ICD10CM_TOOL = {
       response: '{ "total": 78, "codes": [{ "code": "A15.0", "name": "Tuberculosis of lung" }, { "code": "A15.4", "name": "Tuberculosis of intrathoracic lymph nodes" }, { "code": "A15.5", "name": "Tuberculosis of larynx, trachea and bronchus" }] }'
     },
     {
-      description: 'Returns 7 specific respiratory tuberculosis diagnoses (A15 series) by using the q parameter to filter codes starting with "A15"',
+      description: 'Returns all specific respiratory tuberculosis diagnoses (A15 series) by using the q parameter to filter codes starting with "A15"',
       usage: '{ "terms": "tuberc", "q": "code:A15*" }',
       response: '{ "total": 7, "codes": [{ "code": "A15.0", "name": "Tuberculosis of lung" }, { "code": "A15.4", "name": "Tuberculosis of intrathoracic lymph nodes" }, { "code": "A15.5", "name": "Tuberculosis of larynx, trachea and bronchus" }, { "code": "A15.6", "name": "Tuberculous pleurisy" }, { "code": "A15.7", "name": "Primary respiratory tuberculosis" }, { "code": "A15.8", "name": "Other respiratory tuberculosis" }, { "code": "A15.9", "name": "Respiratory tuberculosis unspecified" }] }'
     },
@@ -119,6 +124,230 @@ const SEARCH_ICD10CM_TOOL = {
       description: 'Returns all diagnoses starting with code A02 (Salmonella infections) by searching directly for the code prefix',
       usage: '{ "terms": "A02" }',
       response: '{ "total": 11, "codes": [{ "code": "A02.0", "name": "Salmonella enteritis" }, { "code": "A02.1", "name": "Salmonella sepsis" }, { "code": "A02.20", "name": "Localized salmonella infection, unspecified" }, { "code": "A02.21", "name": "Salmonella meningitis" }, { "code": "A02.22", "name": "Salmonella pneumonia" }, { "code": "A02.23", "name": "Salmonella arthritis" }, { "code": "A02.24", "name": "Salmonella osteomyelitis" }] }'
+    }
+  ]
+};
+
+export const SEARCH_NPI_TOOL: Tool = {
+  name: "search_npi_providers",
+  description: "Search for healthcare providers using the National Provider Identifier (NPI) database. Supports filtering by name, location, provider type, and other criteria.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      terms: {
+        type: "string",
+        description: "Search terms (name, NPI, or other identifiers). Multiple words are ANDed together."
+      },
+      maxList: {
+        type: "number",
+        description: "Maximum number of results to return (default: 500)."
+      },
+      count: {
+        type: "number",
+        description: "Number of results per page (default: 500). Use for pagination."
+      },
+      offset: {
+        type: "number",
+        description: "Starting result number (default: 0). Use for pagination."
+      },
+      q: {
+        type: "string",
+        description: "Additional query constraints. Examples:\n" +
+          "- addr_practice.city:Bethesda\n" +
+          "- provider_type:Physician\n" +
+          "- provider_type:Organization\n" +
+          "- addr_practice.state:NY AND provider_type:Individual"
+      },
+      df: {
+        type: "string",
+        description: "Comma-separated list of fields to display in results. Common values:\n" +
+          "- NPI: Provider's NPI number\n" +
+          "- name.full: Provider's full name\n" +
+          "- provider_type: Type of provider\n" +
+          "- addr_practice: Full practice address\n" +
+          "- addr_practice.city: Practice city\n" +
+          "- addr_practice.state: Practice state\n" +
+          "- addr_practice.zip: Practice ZIP code\n" +
+          "- taxonomy: Provider's taxonomy codes"
+      },
+      sf: {
+        type: "string",
+        description: "Comma-separated list of fields to search in. Common values:\n" +
+          "- NPI: Provider's NPI number\n" +
+          "- name.full: Provider's full name\n" +
+          "- provider_type: Type of provider\n" +
+          "- addr_practice.full: Practice address\n" +
+          "- addr_practice.city: Practice city\n" +
+          "- addr_practice.state: Practice state\n" +
+          "- addr_practice.zip: Practice ZIP code"
+      },
+      ef: {
+        type: "string",
+        description: "Comma-separated list of extra fields to include. Common values:\n" +
+          "- other_ids: Other provider identifiers\n" +
+          "- taxonomy: Provider's taxonomy codes\n" +
+          "- addr_mailing: Mailing address\n" +
+          "- addr_practice: Practice address details\n" +
+          "- phone: Contact phone numbers\n" +
+          "- fax: Fax numbers\n" +
+          "- email: Email addresses\n" +
+          "- website: Provider websites"
+      }
+    },
+    required: ["terms"]
+  },
+  responseSchema: {
+    type: "object",
+    properties: {
+      total: {
+        type: "number",
+        description: "Total number of matching providers"
+      },
+      providers: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            npi: {
+              type: "string",
+              description: "Provider's NPI number"
+            },
+            name: {
+              type: "string",
+              description: "Provider's full name"
+            },
+            type: {
+              type: "string",
+              description: "Provider's type (e.g., 'Physician/Urology', 'Health Maintenance Organization')"
+            },
+            address: {
+              type: "string",
+              description: "Provider's practice address"
+            },
+            addr_practice: {
+              type: "object",
+              description: "Detailed practice address information",
+              properties: {
+                line1: { type: "string", description: "Street address line 1" },
+                line2: { type: "string", description: "Street address line 2 (optional)" },
+                city: { type: "string", description: "City" },
+                state: { type: "string", description: "State" },
+                zip: { type: "string", description: "ZIP code" },
+                country: { type: "string", description: "Country code" },
+                phone: { type: "string", description: "Phone number" },
+                fax: { type: "string", description: "Fax number (optional)" },
+                zip4: { type: "string", description: "ZIP+4 code (optional)" },
+                full: { type: "string", description: "Full formatted address" }
+              }
+            },
+            taxonomy: {
+              type: ["string", "null"],
+              description: "Provider's taxonomy codes (if requested and available)"
+            },
+            other_ids: {
+              type: ["string", "null"],
+              description: "Other provider identifiers (if requested and available)"
+            }
+          }
+        }
+      }
+    }
+  },
+  examples: [
+    {
+      name: "Search for providers in Bethesda",
+      input: {
+        terms: "john",
+        q: "addr_practice.city:Bethesda AND provider_type:Physician",
+        sf: "NPI,name.full,provider_type,addr_practice.city",
+        df: "NPI,name.full,provider_type,addr_practice"
+      },
+      output: {
+        total: 10,
+        providers: [
+          {
+            npi: "1417038803",
+            name: "JOHN KEELING",
+            type: "Physician/Osteopathic Manipulative Medicine",
+            address: "8901 ROCKVILLE PIKE, BETHESDA, MD 20889",
+            addr_practice: {
+              line1: "8901 ROCKVILLE PIKE",
+              city: "BETHESDA",
+              state: "MD",
+              zip: "20889",
+              country: "US",
+              phone: "(301) 295-0730",
+              zip4: "5600",
+              full: "8901 ROCKVILLE PIKE, BETHESDA, MD 20889"
+            }
+          }
+        ]
+      }
+    },
+    {
+      name: "Search for organizations with detailed address",
+      input: {
+        terms: "hospital",
+        q: "provider_type:Organization",
+        ef: "taxonomy,addr_practice",
+        df: "NPI,name.full,provider_type,addr_practice,taxonomy",
+        count: 2
+      },
+      output: {
+        total: 68,
+        providers: [
+          {
+            npi: "1962887356",
+            name: "BEVERLY HOSPITAL",
+            type: "Health Maintenance Organization",
+            address: "85 HERRICK ST, BEVERLY, MA 01915",
+            addr_practice: {
+              line1: "85 HERRICK ST",
+              city: "BEVERLY",
+              state: "MA",
+              zip: "01915",
+              country: "US",
+              phone: "(978) 922-3000",
+              zip4: "1790",
+              full: "85 HERRICK ST, BEVERLY, MA 01915"
+            },
+            taxonomy: null
+          }
+        ]
+      }
+    },
+    {
+      name: "Search with pagination and extra fields",
+      input: {
+        terms: "smith",
+        count: 3,
+        offset: 0,
+        ef: "taxonomy,addr_practice",
+        df: "NPI,name.full,provider_type,addr_practice,taxonomy"
+      },
+      output: {
+        total: 5899,
+        providers: [
+          {
+            npi: "1841356011",
+            name: "LUXOTTICA RETAIL NORTH AMERICA INC",
+            type: "Eyewear Supplier",
+            address: "4 SMITH HAVEN MALL SMITH HAVEN MALL, LAKE GROVE, NY 11755",
+            addr_practice: {
+              line1: "4 SMITH HAVEN MALL",
+              line2: "SMITH HAVEN MALL",
+              city: "LAKE GROVE",
+              state: "NY",
+              zip: "11755",
+              country: "US",
+              phone: "(631) 361-5289",
+              zip4: "1219",
+              full: "4 SMITH HAVEN MALL SMITH HAVEN MALL, LAKE GROVE, NY 11755"
+            },
+            taxonomy: null
+          }
+        ]
+      }
     }
   ]
 };
@@ -195,6 +424,73 @@ async function searchICD10CM(
   };
 }
 
+async function searchNPI(
+  terms: string,
+  maxList: number = 500,
+  count: number = 500,
+  offset: number = 0,
+  q?: string,
+  df: string = "NPI,name.full,provider_type,addr_practice.full",
+  sf: string = "NPI,name.full,provider_type,addr_practice.full",
+  cf: string = "NPI",
+  ef?: string
+) {
+  const query = new URLSearchParams({
+    terms,
+    maxList: maxList.toString(),
+    count: count.toString(),
+    offset: offset.toString(),
+    df,
+    sf,
+    cf
+  });
+  if (q) query.append("q", q);
+  if (ef) query.append("ef", ef);
+
+  const fullUrl = `${NPI_API_BASE_URL}/search?${query.toString()}`;
+
+  let response, raw, data;
+  try {
+    response = await fetch(fullUrl);
+    raw = await response.text();
+    data = JSON.parse(raw);
+  } catch (err) {
+    throw err;
+  }
+
+  // Prepare extra fields if present
+  let extraFields: Record<string, any[]> = {};
+  if (ef && data[2]) {
+    extraFields = data[2];
+  }
+
+  let providers = [];
+  try {
+    providers = data[1].map((npi: string, index: number) => {
+      const displayData = data[3]?.[index] || [];
+      const result: any = {
+        npi,
+        name: displayData[1] || '',
+        type: displayData[2] || '',
+        address: displayData[3] || ''
+      };
+      // Attach extra fields if present
+      if (extraFields && Object.keys(extraFields).length > 0) {
+        for (const [field, values] of Object.entries(extraFields)) {
+          result[field] = values[index];
+        }
+      }
+      return result;
+    });
+  } catch (err) {
+    throw err;
+  }
+  return {
+    total: data[0],
+    providers
+  };
+}
+
 function sendError(res: http.ServerResponse, message: string, code: number = 400) {
   res.writeHead(code, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: message, code }));
@@ -249,6 +545,8 @@ async function runServer() {
           const url = req.url || '';
           if (url === '/search_icd10cm_codes') {
             result = await searchICD10CM(data.terms, data.maxList, data.count, data.offset, data.q, data.df, data.sf, data.cf, data.ef);
+          } else if (url === '/search_npi_providers') {
+            result = await searchNPI(data.terms, data.maxList, data.count, data.offset, data.q, data.df, data.sf, data.cf, data.ef);
           } else {
             sendError(res, 'Not found', 404);
             return;
@@ -283,7 +581,10 @@ async function runServer() {
 
   // Set up request handlers
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [SEARCH_ICD10CM_TOOL]
+    tools: [
+      SEARCH_ICD10CM_TOOL,
+      SEARCH_NPI_TOOL
+    ]
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -296,10 +597,15 @@ async function runServer() {
           const result = await searchICD10CM(a.terms, a.maxList, a.count, a.offset, a.q, a.df, a.sf, a.cf, a.ef);
           return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: false };
         }
+        case 'search_npi_providers': {
+          const a = args as any;
+          const result = await searchNPI(a.terms, a.maxList, a.count, a.offset, a.q, a.df, a.sf, a.cf, a.ef);
+          return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: false };
+        }
         default:
           throw new McpError(-32603, 'Unknown tool');
       }
-      } catch (error) {
+    } catch (error) {
       throw new McpError(-32603, error instanceof Error ? error.message : String(error));
     }
   });
