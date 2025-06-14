@@ -1,9 +1,18 @@
-declare module 'robots-parser' {
-  interface RobotsParser {
-    isAllowed(url: string, userAgent?: string): boolean;
-  }
-
-  function robotsParser(url: string, content: string): RobotsParser;
-  
-  export default robotsParser;
-}
+export interface Tool {
+  name: string;
+  description: string;
+  inputSchema: {
+    type: string;
+    properties: Record<string, any>;
+    required: string[];
+  };
+  responseSchema: {
+    type: string;
+    properties: Record<string, any>;
+  };
+  examples: Array<{
+    name: string;
+    input: Record<string, any>;
+    output: Record<string, any>;
+  }>;
+} 
