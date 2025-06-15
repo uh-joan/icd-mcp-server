@@ -352,10 +352,313 @@ export const SEARCH_NPI_TOOL: Tool = {
   ]
 };
 
+export const SEARCH_MEDICARE_TOOL: Tool = {
+  name: "search_medicare_providers",
+  description: "Search Medicare Physician & Other Practitioners data for 2023. Provides information on services and procedures provided to Original Medicare Part B beneficiaries by physicians and other healthcare professionals. Supports two types of data: aggregated by geography and service, or by provider and service.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      dataset_type: {
+        type: "string",
+        description: "Type of dataset to search. 'geography_and_service' provides aggregated data by geographic area (National, State, County, or ZIP) showing total providers, services, and payments in each area. 'provider_and_service' provides individual provider-level data showing specific providers who performed services, their locations, and their service volumes.",
+        enum: ["geography_and_service", "provider_and_service"],
+        default: "geography_and_service"
+      },
+      hcpcs_code: {
+        type: "string",
+        description: "Healthcare Common Procedure Coding System (HCPCS) code"
+      },
+      geo_level: {
+        type: "string",
+        description: "Geographic level of data (only for geography_and_service dataset)",
+        enum: ["National", "State", "County", "Zip"]
+      },
+      geo_code: {
+        type: "string",
+        description: "Geographic code (state code, county code, or ZIP code) (only for geography_and_service dataset)"
+      },
+      place_of_service: {
+        type: "string",
+        description: "Place of service code",
+        enum: ["F", "O"]
+      },
+      size: {
+        type: "number",
+        description: "Number of results to return (default: 10, max: 5000)"
+      },
+      offset: {
+        type: "number",
+        description: "Starting result number (default: 0)"
+      },
+      keyword: {
+        type: "string",
+        description: "Search term for quick full-text search across all fields"
+      },
+      sort: {
+        type: "object",
+        description: "Sort results by field",
+        properties: {
+          field: {
+            type: "string",
+            description: "Field to sort by",
+            enum: [
+              "HCPCS_Cd",
+              "HCPCS_Desc",
+              "Tot_Rndrng_Prvdrs",
+              "Tot_Benes",
+              "Tot_Srvcs",
+              "Avg_Sbmtd_Chrg",
+              "Avg_Mdcr_Alowd_Amt",
+              "Avg_Mdcr_Pymt_Amt",
+              "Rndrng_Prvdr_Last_Org_Name",
+              "Rndrng_Prvdr_Type"
+            ]
+          },
+          direction: {
+            type: "string",
+            description: "Sort direction",
+            enum: ["asc", "desc"]
+          }
+        }
+      }
+    },
+    required: []
+  },
+  responseSchema: {
+    type: "object",
+    properties: {
+      providers: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            // Common fields for both datasets
+            hcpcs_code: { type: "string", description: "HCPCS code" },
+            hcpcs_desc: { type: "string", description: "HCPCS description" },
+            hcpcs_drug_ind: { type: "string", description: "HCPCS drug indicator" },
+            place_of_service: { type: "string", description: "Place of service code" },
+            total_beneficiaries: { type: "number", description: "Total number of beneficiaries" },
+            total_services: { type: "number", description: "Total number of services" },
+            total_beneficiary_days: { type: "number", description: "Total beneficiary days of service" },
+            avg_submitted_charge: { type: "number", description: "Average submitted charge amount" },
+            avg_medicare_allowed: { type: "number", description: "Average Medicare allowed amount" },
+            avg_medicare_payment: { type: "number", description: "Average Medicare payment amount" },
+            avg_medicare_standardized: { type: "number", description: "Average Medicare standardized amount" },
+            // Geography dataset specific fields
+            geo_level: { type: "string", description: "Geographic level" },
+            geo_code: { type: "string", description: "Geographic code" },
+            geo_desc: { type: "string", description: "Geographic description" },
+            total_providers: { type: "number", description: "Total number of rendering providers" },
+            // Provider dataset specific fields
+            npi: { type: "string", description: "Provider's NPI number" },
+            provider_name: { type: "string", description: "Provider's full name" },
+            provider_type: { type: "string", description: "Provider's specialty or type" },
+            provider_address: { type: "string", description: "Provider's address" },
+            provider_city: { type: "string", description: "Provider's city" },
+            provider_state: { type: "string", description: "Provider's state" },
+            provider_zip: { type: "string", description: "Provider's ZIP code" },
+            provider_country: { type: "string", description: "Provider's country" },
+            medicare_participating: { type: "string", description: "Medicare participating indicator" }
+          }
+        }
+      },
+      total: { type: "number", description: "Total number of results" }
+    }
+  },
+  examples: [
+    {
+      name: "Search for office visit codes by state (geography_and_service dataset)",
+      input: {
+        dataset_type: "geography_and_service",
+        hcpcs_code: "99213",
+        geo_level: "State",
+        size: 2
+      },
+      output: {
+        total: 2,
+        providers: [
+          {
+            geo_level: "State",
+            geo_code: "01",
+            geo_desc: "Alabama",
+            hcpcs_code: "99213",
+            hcpcs_desc: "Established patient office or other outpatient visit, 20-29 minutes",
+            hcpcs_drug_ind: "N",
+            place_of_service: "F",
+            total_providers: 1246,
+            total_beneficiaries: 23596,
+            total_services: 47657,
+            total_beneficiary_days: 47657,
+            avg_submitted_charge: 139.55,
+            avg_medicare_allowed: 57.99,
+            avg_medicare_payment: 41.75,
+            avg_medicare_standardized: 44.36
+          }
+        ]
+      }
+    },
+    {
+      name: "Search for providers performing specific service (provider_and_service dataset)",
+      input: {
+        dataset_type: "provider_and_service",
+        hcpcs_code: "99213",
+        size: 2
+      },
+      output: {
+        total: 2,
+        providers: [
+          {
+            npi: "1003008533",
+            provider_name: "SABODASH, VALERIY",
+            provider_type: "Neurology",
+            provider_address: "5741 Bee Ridge Rd Ste 530",
+            provider_city: "Sarasota",
+            provider_state: "FL",
+            provider_zip: "34233",
+            provider_country: "US",
+            medicare_participating: "Y",
+            hcpcs_code: "99213",
+            hcpcs_desc: "Established patient office or other outpatient visit, 20-29 minutes",
+            hcpcs_drug_ind: "N",
+            place_of_service: "O",
+            total_beneficiaries: 45,
+            total_services: 52,
+            total_beneficiary_days: 52,
+            avg_submitted_charge: 141.00,
+            avg_medicare_allowed: 88.44,
+            avg_medicare_payment: 63.59,
+            avg_medicare_standardized: 64.45
+          }
+        ]
+      }
+    },
+    {
+      name: "Search for provider by NPI (provider_and_service dataset)",
+      input: {
+        dataset_type: "provider_and_service",
+        keyword: "1003000142",
+        size: 2
+      },
+      output: {
+        total: 2,
+        providers: [
+          {
+            hcpcs_code: "27096",
+            hcpcs_desc: "Injection of anesthetic or steroid into joint between lower spine and hip bone using imaging guidance",
+            hcpcs_drug_ind: "N",
+            place_of_service: "F",
+            total_beneficiaries: 11,
+            total_services: 12,
+            total_beneficiary_days: 12,
+            avg_submitted_charge: 254.83,
+            avg_medicare_allowed: 112.87,
+            avg_medicare_payment: 81.88,
+            avg_medicare_standardized: 84.34,
+            npi: "1003000142",
+            provider_name: "Khalil, Rashid",
+            provider_type: "Anesthesiology",
+            provider_address: "4126 N Holland Sylvania Rd",
+            provider_city: "Toledo",
+            provider_state: "OH",
+            provider_zip: "43623",
+            provider_country: "US",
+            medicare_participating: "Y"
+          }
+        ]
+      }
+    },
+    {
+      name: "Search for providers by specialty (provider_and_service dataset)",
+      input: {
+        dataset_type: "provider_and_service",
+        hcpcs_code: "99213",
+        keyword: "Neurology",
+        size: 2
+      },
+      output: {
+        total: 2,
+        providers: [
+          {
+            hcpcs_code: "99213",
+            hcpcs_desc: "Established patient office or other outpatient visit, 20-29 minutes",
+            hcpcs_drug_ind: "N",
+            place_of_service: "O",
+            total_beneficiaries: 20,
+            total_services: 25,
+            total_beneficiary_days: 25,
+            avg_submitted_charge: 191.00,
+            avg_medicare_allowed: 71.12,
+            avg_medicare_payment: 57.01,
+            avg_medicare_standardized: 52.29,
+            npi: "1003006198",
+            provider_name: "Cinski, Laura A",
+            provider_type: "Neurology",
+            provider_address: "8081 Innovation Park Dr Ste 900",
+            provider_city: "Fairfax",
+            provider_state: "VA",
+            provider_zip: "22031",
+            provider_country: "US",
+            medicare_participating: "Y"
+          }
+        ]
+      }
+    }
+  ]
+};
+
 interface ICD10CMResponse {
   total: number;
   codes: Array<[string, string]>;
   displayData: Array<[string, string]>;
+}
+
+interface MedicareProviderGeographyResponse {
+  Rndrng_Prvdr_Geo_Lvl: string;
+  Rndrng_Prvdr_Geo_Cd: string;
+  Rndrng_Prvdr_Geo_Desc: string;
+  HCPCS_Cd: string;
+  HCPCS_Desc: string;
+  HCPCS_Drug_Ind: string;
+  Place_Of_Srvc: string;
+  Tot_Rndrng_Prvdrs: number;
+  Tot_Benes: number;
+  Tot_Srvcs: number;
+  Tot_Bene_Day_Srvcs: number;
+  Avg_Sbmtd_Chrg: number;
+  Avg_Mdcr_Alowd_Amt: number;
+  Avg_Mdcr_Pymt_Amt: number;
+  Avg_Mdcr_Stdzd_Amt: number;
+}
+
+interface MedicareProviderIndividualResponse {
+  Rndrng_NPI: string;
+  Rndrng_Prvdr_Last_Org_Name: string;
+  Rndrng_Prvdr_First_Name: string;
+  Rndrng_Prvdr_MI: string;
+  Rndrng_Prvdr_Crdntls: string;
+  Rndrng_Prvdr_Ent_Cd: string;
+  Rndrng_Prvdr_St1: string;
+  Rndrng_Prvdr_St2: string;
+  Rndrng_Prvdr_City: string;
+  Rndrng_Prvdr_State_Abrvtn: string;
+  Rndrng_Prvdr_State_FIPS: string;
+  Rndrng_Prvdr_Zip5: string;
+  Rndrng_Prvdr_RUCA: string;
+  Rndrng_Prvdr_RUCA_Desc: string;
+  Rndrng_Prvdr_Cntry: string;
+  Rndrng_Prvdr_Type: string;
+  Rndrng_Prvdr_Mdcr_Prtcptg_Ind: string;
+  HCPCS_Cd: string;
+  HCPCS_Desc: string;
+  HCPCS_Drug_Ind: string;
+  Place_Of_Srvc: string;
+  Tot_Benes: number;
+  Tot_Srvcs: number;
+  Tot_Bene_Day_Srvcs: number;
+  Avg_Sbmtd_Chrg: number;
+  Avg_Mdcr_Alowd_Amt: number;
+  Avg_Mdcr_Pymt_Amt: number;
+  Avg_Mdcr_Stdzd_Amt: number;
 }
 
 async function searchICD10CM(
@@ -491,6 +794,119 @@ async function searchNPI(
   };
 }
 
+async function searchMedicare(
+  dataset_type: string = "geography_and_service",
+  hcpcs_code?: string,
+  geo_level?: string,
+  geo_code?: string,
+  place_of_service?: string,
+  size: number = 10,
+  offset: number = 0,
+  keyword?: string,
+  sort?: { field: string; direction: 'asc' | 'desc' }
+) {
+  // Select dataset UUID based on type
+  const datasetUuid = dataset_type === "geography_and_service" 
+    ? "ddee9e22-7889-4bef-975a-7853e4cd0fbb"  // Geography dataset
+    : "0e9f2f2b-7bf9-451a-912c-e02e654dd725"; // Provider dataset
+
+  const query = new URLSearchParams({
+    size: Math.min(size, 5000).toString(),
+    offset: offset.toString()
+  });
+
+  if (keyword) {
+    query.append("keyword", keyword);
+  }
+
+  // Add filters using the JSONAPI filter syntax
+  if (hcpcs_code) {
+    query.append("filter[filter-1][condition][path]", "HCPCS_Cd");
+    query.append("filter[filter-1][condition][operator]", "=");
+    query.append("filter[filter-1][condition][value]", hcpcs_code);
+  }
+
+  if (dataset_type === "geography_and_service") {
+    if (geo_level) {
+      query.append("filter[filter-2][condition][path]", "Rndrng_Prvdr_Geo_Lvl");
+      query.append("filter[filter-2][condition][operator]", "=");
+      query.append("filter[filter-2][condition][value]", geo_level);
+    }
+
+    if (geo_code) {
+      query.append("filter[filter-3][condition][path]", "Rndrng_Prvdr_Geo_Cd");
+      query.append("filter[filter-3][condition][operator]", "=");
+      query.append("filter[filter-3][condition][value]", geo_code);
+    }
+  }
+
+  if (place_of_service) {
+    query.append("filter[filter-4][condition][path]", "Place_Of_Srvc");
+    query.append("filter[filter-4][condition][operator]", "=");
+    query.append("filter[filter-4][condition][value]", place_of_service);
+  }
+
+  if (sort) {
+    query.append("sort", `${sort.direction === 'desc' ? '-' : ''}${sort.field}`);
+  }
+
+  const url = `https://data.cms.gov/data-api/v1/dataset/${datasetUuid}/data?${query.toString()}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json() as (MedicareProviderGeographyResponse[] | MedicareProviderIndividualResponse[]);
+
+    return {
+      total: data.length,
+      providers: data.map((item) => {
+        const baseProvider = {
+          hcpcs_code: item.HCPCS_Cd,
+          hcpcs_desc: item.HCPCS_Desc,
+          hcpcs_drug_ind: item.HCPCS_Drug_Ind,
+          place_of_service: item.Place_Of_Srvc,
+          total_beneficiaries: item.Tot_Benes,
+          total_services: item.Tot_Srvcs,
+          total_beneficiary_days: item.Tot_Bene_Day_Srvcs,
+          avg_submitted_charge: item.Avg_Sbmtd_Chrg,
+          avg_medicare_allowed: item.Avg_Mdcr_Alowd_Amt,
+          avg_medicare_payment: item.Avg_Mdcr_Pymt_Amt,
+          avg_medicare_standardized: item.Avg_Mdcr_Stdzd_Amt
+        };
+
+        if (dataset_type === "geography_and_service") {
+          const geoItem = item as MedicareProviderGeographyResponse;
+          return {
+            ...baseProvider,
+            geo_level: geoItem.Rndrng_Prvdr_Geo_Lvl,
+            geo_code: geoItem.Rndrng_Prvdr_Geo_Cd,
+            geo_desc: geoItem.Rndrng_Prvdr_Geo_Desc,
+            total_providers: geoItem.Tot_Rndrng_Prvdrs
+          };
+        } else {
+          const providerItem = item as MedicareProviderIndividualResponse;
+          return {
+            ...baseProvider,
+            npi: providerItem.Rndrng_NPI,
+            provider_name: `${providerItem.Rndrng_Prvdr_Last_Org_Name}, ${providerItem.Rndrng_Prvdr_First_Name}${providerItem.Rndrng_Prvdr_MI ? ` ${providerItem.Rndrng_Prvdr_MI}` : ''}`,
+            provider_type: providerItem.Rndrng_Prvdr_Type,
+            provider_address: providerItem.Rndrng_Prvdr_St1,
+            provider_city: providerItem.Rndrng_Prvdr_City,
+            provider_state: providerItem.Rndrng_Prvdr_State_Abrvtn,
+            provider_zip: providerItem.Rndrng_Prvdr_Zip5,
+            provider_country: providerItem.Rndrng_Prvdr_Cntry,
+            medicare_participating: providerItem.Rndrng_Prvdr_Mdcr_Prtcptg_Ind
+          };
+        }
+      })
+    };
+  } catch (error) {
+    throw error;
+  }
+}
+
 function sendError(res: http.ServerResponse, message: string, code: number = 400) {
   res.writeHead(code, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: message, code }));
@@ -547,6 +963,8 @@ async function runServer() {
             result = await searchICD10CM(data.terms, data.maxList, data.count, data.offset, data.q, data.df, data.sf, data.cf, data.ef);
           } else if (url === '/search_npi_providers') {
             result = await searchNPI(data.terms, data.maxList, data.count, data.offset, data.q, data.df, data.sf, data.cf, data.ef);
+          } else if (url === '/search_medicare_providers') {
+            result = await searchMedicare(data.dataset_type, data.hcpcs_code, data.geo_level, data.geo_code, data.place_of_service, data.size, data.offset, data.keyword, data.sort);
           } else {
             sendError(res, 'Not found', 404);
             return;
@@ -583,7 +1001,8 @@ async function runServer() {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       SEARCH_ICD10CM_TOOL,
-      SEARCH_NPI_TOOL
+      SEARCH_NPI_TOOL,
+      SEARCH_MEDICARE_TOOL
     ]
   }));
 
@@ -600,6 +1019,11 @@ async function runServer() {
         case 'search_npi_providers': {
           const a = args as any;
           const result = await searchNPI(a.terms, a.maxList, a.count, a.offset, a.q, a.df, a.sf, a.cf, a.ef);
+          return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: false };
+        }
+        case 'search_medicare_providers': {
+          const a = args as any;
+          const result = await searchMedicare(a.dataset_type, a.hcpcs_code, a.geo_level, a.geo_code, a.place_of_service, a.size, a.offset, a.keyword, a.sort);
           return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: false };
         }
         default:

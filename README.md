@@ -1,280 +1,220 @@
 # ICD-10-CM and NPI MCP Server
 
-A lightweight server that exposes the National Library of Medicine's ICD-10-CM code search API and NPI (National Provider Identifier) search API via the Model Context Protocol (MCP) and HTTP.
+This server provides access to ICD-10-CM codes and National Provider Identifier (NPI) data through a Model Context Protocol (MCP) interface. It also includes Medicare provider data for 2023.
 
 ## About this Server
 - **Project:** `icd-mcp-server`
 - **Version:** 0.1
 - **License:** MIT
 
-This server provides a bridge between the Model Context Protocol (MCP) and the NLM APIs. It supports both MCP (stdio) and HTTP server modes for flexible integration.
-
 ## Available Tools
 
-### 1. ICD-10-CM Code Search
+1. `search_icd10cm_codes`: Search for ICD-10-CM codes using the NLM API
+2. `search_npi_providers`: Search for healthcare providers using the NPI database
+3. `search_medicare_providers`: Search Medicare Physician & Other Practitioners data for 2023
 
-#### What is ICD-10-CM?
-ICD-10-CM (International Classification of Diseases, 10th Revision, Clinical Modification) is a medical coding system for classifying diagnoses and reasons for visits in U.S. health care settings.
+## API Details
 
-- **Current version:** ICD-10-CM 2025
-- **Data version:** 2025; 74,260 records
-- **More info:** [CDC ICD-10-CM](https://www.cdc.gov/nchs/icd/icd10cm.htm)
+### ICD-10-CM Search
 
-#### API Details
-- **Base URL:** `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search`
-- **Official docs:** [NLM Clinical Tables API](https://clinicaltables.nlm.nih.gov/apidoc/icd10cm/v3/doc.html)
+The `search_icd10cm_codes` tool provides access to the National Library of Medicine's (NLM) ICD-10-CM code database.
 
 #### Parameters
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `terms`   |         | **Required.** The search string (e.g., part of a word/code) to match. Multiple words are ANDed. |
-| `maxList` | 500     | Optional. Max number of results. |
-| `count`   | 500     | Number of results to retrieve (page size). |
-| `offset`  | 0       | Starting result number (for pagination). |
-| `sf`      | code,name | Comma-separated list of fields to search. |
-| `q`       |         | Optional. Additional query string to further constrain results. Supports wildcards and field names. |
-| `df`      | code,name | Comma-separated list of display fields. |
-| `cf`      | code    | Comma-separated list of fields to count matches in. |
 
-#### Extra Fields (ef)
-The API supports an optional `ef` parameter to request additional fields in the response. Available extra fields include:
-
-- **excludes**: Lists conditions or codes that are excluded from the current code.
-- **includes**: Lists conditions or codes that are included under the current code.
-- **notes**: Additional notes or instructions related to the code.
-- **category**: The category or chapter the code belongs to.
-- **subcategory**: A more specific subcategory of the code.
-- **parent**: The parent code or category.
-- **block**: The block or range the code belongs to.
-- **chapter**: The chapter number or name in the ICD-10-CM classification.
+- `terms` (string, required): The search string for which to find matches in the list
+- `maxList` (number, default: 500): Specifies the number of results requested, up to the upper limit of 500
+- `count` (number, default: 500): The number of results to retrieve (page size)
+- `offset` (number, default: 0): The starting result number (0-based) to retrieve
+- `q` (string): An optional, additional query string used to further constrain the results
+- `df` (string, default: "code,name"): A comma-separated list of display fields
+- `sf` (string, default: "code,name"): A comma-separated list of fields to be searched
+- `cf` (string, default: "code"): A field to regard as the 'code' for the returned item data
+- `ef` (string): A comma-separated list of additional fields to be returned for each retrieved list item
 
 #### Example Queries
-- Search for tuberculosis-related codes:
-  - `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search?sf=code,name&terms=tuberc`
-- Search for codes starting with A15:
-  - `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search?sf=code,name&terms=A15`
-- Search for tuberculosis-related codes with additional constraint:
-  - `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search?sf=code,name&terms=tuberc&q=code:A15*`
 
-#### Using the Tool
-
-##### HTTP Mode
-POST to `/search_icd10cm_codes` with JSON body:
-```json
-{ "terms": "tuberc"}
+1. Search for tuberculosis-related diagnoses:
+```bash
+curl -X POST http://localhost:3005/search_icd10cm_codes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "terms": "tuberc"
+  }'
 ```
 
-Response:
-```json
-{
-  "total": 71,
-  "codes": [
-    { "code": "A15.0", "name": "Tuberculosis of lung" },
-    ...
-  ]
-}
+2. Search for specific respiratory tuberculosis diagnoses:
+```bash
+curl -X POST http://localhost:3005/search_icd10cm_codes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "terms": "tuberc",
+    "q": "code:A15*"
+  }'
 ```
 
-##### MCP Mode
-```json
-{
-  "tool": "search_icd10cm_codes",
-  "arguments": { "terms": "tuberc"}
-}
-```
+### NPI Provider Search
 
-### 2. NPI Provider Search
-
-#### What is NPI?
-The National Provider Identifier (NPI) is a unique identification number for covered healthcare providers. The NPI is a 10-position, intelligence-free numeric identifier (10-digit number).
-
-- **Data version:** 2025-05-12; 1,814,275 records
-- **More info:** [NPI Registry](https://npiregistry.cms.hhs.gov/)
-
-#### API Details
-- **Base URL:** `https://clinicaltables.nlm.nih.gov/api/npi_org/v3/search`
-- **Official docs:** [NLM Clinical Tables API](https://clinicaltables.nlm.nih.gov/apidoc/npi_org/v3/doc.html)
+The `search_npi_providers` tool provides access to the National Provider Identifier (NPI) database, allowing searches for healthcare providers by name, location, provider type, and other criteria.
 
 #### Parameters
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `terms`   |         | **Required.** The search string (e.g., part of a word/code) to match. Multiple words are ANDed. |
-| `maxList` | 500     | Optional. Max number of results. |
-| `count`   | 500     | Number of results to retrieve (page size). |
-| `offset`  | 0       | Starting result number (for pagination). |
-| `sf`      | NPI,name.full,provider_type,addr_practice.full | Fields to search in. Common values: |
-|           |         | - `NPI`: Provider's NPI number |
-|           |         | - `name.full`: Provider's full name |
-|           |         | - `provider_type`: Type of provider (Individual/Organization) |
-|           |         | - `addr_practice.full`: Practice address |
-|           |         | - `addr_practice.city`: Practice city |
-|           |         | - `addr_practice.state`: Practice state |
-|           |         | - `addr_practice.zip`: Practice ZIP code |
-| `df`      | NPI,name.full,provider_type,addr_practice.full | Fields to display in results |
-| `ef`      |         | Extra fields to include. Common values: |
-|           |         | - `other_ids`: Other provider identifiers |
-|           |         | - `taxonomy`: Provider's taxonomy codes |
-|           |         | - `addr_mailing`: Mailing address |
-|           |         | - `addr_practice`: Practice address details |
-|           |         | - `phone`: Contact phone numbers |
-|           |         | - `fax`: Fax numbers |
-|           |         | - `email`: Email addresses |
-|           |         | - `website`: Provider websites |
-| `q`       |         | Query constraints. Examples: |
-|           |         | - `addr_practice.city:Bethesda` |
-|           |         | - `provider_type:Individual` |
-|           |         | - `taxonomy:207Q00000X` |
+
+- `terms` (string, required): Search terms (name, NPI, or other identifiers). Multiple words are ANDed together
+- `maxList` (number, default: 500): Maximum number of results to return
+- `count` (number, default: 500): Number of results per page. Use for pagination
+- `offset` (number, default: 0): Starting result number. Use for pagination
+- `q` (string): Additional query constraints. Examples:
+  - `addr_practice.city:Bethesda`
+  - `provider_type:Physician`
+  - `provider_type:Organization`
+  - `addr_practice.state:NY AND provider_type:Individual`
+- `df` (string): Comma-separated list of fields to display in results
+- `sf` (string): Comma-separated list of fields to search in
+- `ef` (string): Comma-separated list of extra fields to include
 
 #### Example Queries
-- Search for providers named "john" in Bethesda:
-  - `https://clinicaltables.nlm.nih.gov/api/npi_org/v3/search?terms=john&q=addr_practice.city:Bethesda`
-- Search for providers with last name "williams" and additional IDs:
-  - `https://clinicaltables.nlm.nih.gov/api/npi_org/v3/search?terms=williams&ef=other_ids`
 
-#### Detailed Examples
-
-##### Search for providers in Bethesda
-```json
-{
-  "terms": "john",
-  "q": "addr_practice.city:Bethesda AND provider_type:Physician",
-  "sf": "NPI,name.full,provider_type,addr_practice.city",
-  "df": "NPI,name.full,provider_type,addr_practice"
-}
+1. Search for providers in Bethesda:
+```bash
+curl -X POST http://localhost:3005/search_npi_providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "terms": "john",
+    "q": "addr_practice.city:Bethesda AND provider_type:Physician",
+    "sf": "NPI,name.full,provider_type,addr_practice.city",
+    "df": "NPI,name.full,provider_type,addr_practice"
+  }'
 ```
 
-Response:
-```json
-{
-  "total": 10,
-  "providers": [
-    {
-      "npi": "1417038803",
-      "name": "JOHN KEELING",
-      "type": "Physician/Osteopathic Manipulative Medicine",
-      "address": "8901 ROCKVILLE PIKE, BETHESDA, MD 20889",
-      "addr_practice": {
-        "line1": "8901 ROCKVILLE PIKE",
-        "city": "BETHESDA",
-        "state": "MD",
-        "zip": "20889",
-        "country": "US",
-        "phone": "(301) 295-0730",
-        "zip4": "5600",
-        "full": "8901 ROCKVILLE PIKE, BETHESDA, MD 20889"
-      }
-    }
-  ]
-}
+2. Search for organizations with detailed address:
+```bash
+curl -X POST http://localhost:3005/search_npi_providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "terms": "hospital",
+    "q": "provider_type:Organization",
+    "ef": "taxonomy,addr_practice",
+    "df": "NPI,name.full,provider_type,addr_practice,taxonomy",
+    "count": 2
+  }'
 ```
 
-##### Search for organizations with detailed address
-```json
-{
-  "terms": "hospital",
-  "q": "provider_type:Organization",
-  "ef": "taxonomy,addr_practice",
-  "df": "NPI,name.full,provider_type,addr_practice,taxonomy",
-  "count": 2
-}
+### Medicare Provider Search
+
+The `search_medicare_providers` tool provides access to Medicare Physician & Other Practitioners data for 2023. This data includes information about services and procedures provided to Original Medicare Part B beneficiaries. The tool supports two types of data:
+- `geography_and_service`: Aggregated data by geographic area (National, State, County, or ZIP) showing total providers, services, and payments in each area
+- `provider_and_service`: Individual provider-level data showing specific providers who performed services, their locations, and their service volumes
+
+#### Parameters
+
+- `dataset_type` (string, default: "geography_and_service"): Type of dataset to search. Options:
+  - "geography_and_service": Aggregated data by geographic area
+  - "provider_and_service": Individual provider-level data
+- `hcpcs_code` (string): Healthcare Common Procedure Coding System (HCPCS) code
+- `geo_level` (string): Geographic level of data ("National", "State", "County", "Zip") - only for geography_and_service dataset
+- `geo_code` (string): Geographic code (state code, county code, or ZIP code) - only for geography_and_service dataset
+- `place_of_service` (string): Place of service code ("F" for facility, "O" for office)
+- `size` (number): Number of results to return (default: 10, max: 5000)
+- `offset` (number): Starting result number for pagination (default: 0)
+- `keyword` (string): Search term for quick full-text search across all fields
+- `sort` (object): Sort results by field
+  - `field`: Field to sort by (e.g., "Tot_Srvcs", "Avg_Mdcr_Pymt_Amt", "Rndrng_Prvdr_State_Abrvtn")
+  - `direction`: Sort direction ("asc" or "desc")
+
+#### Example Queries
+
+1. Search for office visit codes by state (geography_and_service dataset):
+```bash
+curl -X POST http://localhost:3005/search_medicare_providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_type": "geography_and_service",
+    "hcpcs_code": "99213",
+    "geo_level": "State",
+    "size": 2
+  }'
 ```
 
-Response:
-```json
-{
-  "total": 68,
-  "providers": [
-    {
-      "npi": "1962887356",
-      "name": "BEVERLY HOSPITAL",
-      "type": "Health Maintenance Organization",
-      "address": "85 HERRICK ST, BEVERLY, MA 01915",
-      "addr_practice": {
-        "line1": "85 HERRICK ST",
-        "city": "BEVERLY",
-        "state": "MA",
-        "zip": "01915",
-        "country": "US",
-        "phone": "(978) 922-3000",
-        "zip4": "1790",
-        "full": "85 HERRICK ST, BEVERLY, MA 01915"
-      },
-      "taxonomy": null
-    }
-  ]
-}
+2. Search for providers performing specific service (provider_and_service dataset):
+```bash
+curl -X POST http://localhost:3005/search_medicare_providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_type": "provider_and_service",
+    "hcpcs_code": "99213",
+    "size": 2
+  }'
 ```
 
-##### Search with pagination and extra fields
-```json
-{
-  "terms": "smith",
-  "count": 3,
-  "offset": 0,
-  "ef": "taxonomy,addr_practice",
-  "df": "NPI,name.full,provider_type,addr_practice,taxonomy"
-}
+3. Search for provider by NPI (provider_and_service dataset):
+```bash
+curl -X POST http://localhost:3005/search_medicare_providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_type": "provider_and_service",
+    "keyword": "1003000142",
+    "size": 2
+  }'
 ```
 
-Response:
-```json
-{
-  "total": 5899,
-  "providers": [
-    {
-      "npi": "1841356011",
-      "name": "LUXOTTICA RETAIL NORTH AMERICA INC",
-      "type": "Eyewear Supplier",
-      "address": "4 SMITH HAVEN MALL SMITH HAVEN MALL, LAKE GROVE, NY 11755",
-      "addr_practice": {
-        "line1": "4 SMITH HAVEN MALL",
-        "line2": "SMITH HAVEN MALL",
-        "city": "LAKE GROVE",
-        "state": "NY",
-        "zip": "11755",
-        "country": "US",
-        "phone": "(631) 361-5289",
-        "zip4": "1219",
-        "full": "4 SMITH HAVEN MALL SMITH HAVEN MALL, LAKE GROVE, NY 11755"
-      },
-      "taxonomy": null
-    }
-  ]
-}
-```
-
-#### Using the Tool
-
-##### HTTP Mode
-POST to `/search_npi_providers` with JSON body containing the search parameters.
-
-##### MCP Mode
-```json
-{
-  "tool": "search_npi_providers",
-  "arguments": { "terms": "john", "q": "addr_practice.city:Bethesda" }
-}
+4. Search for providers by specialty (provider_and_service dataset):
+```bash
+curl -X POST http://localhost:3005/search_medicare_providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_type": "provider_and_service",
+    "hcpcs_code": "99213",
+    "keyword": "Neurology",
+    "size": 2
+  }'
 ```
 
 ## Usage
 
 ### HTTP Mode
-Run the server in HTTP mode:
+
+To run the server in HTTP mode:
+
 ```bash
 USE_HTTP=true PORT=3005 npm start
 ```
 
-Make requests to the endpoints:
-- `/search_icd10cm_codes` for ICD-10-CM searches
-- `/search_npi_providers` for NPI searches
+The server will be available at `http://localhost:3005` with the following endpoints:
+- `POST /search_icd10cm_codes`
+- `POST /search_npi_providers`
+- `POST /search_medicare_providers`
+- `GET /health` (health check endpoint)
 
 ### MCP Mode
-Run the server in MCP mode:
+
+To run the server in MCP mode:
+
 ```bash
 npm start
 ```
 
-The server will be available through the MCP protocol.
+The server will communicate via stdin/stdout using the Model Context Protocol.
+
+## Notes
+
+### ICD-10-CM Search
+- Results are limited to 500 items per request
+- The search is case-insensitive
+- Multiple words in the search terms are ANDed together
+
+### NPI Search
+- Results are limited to 500 items per request
+- The search is case-insensitive
+- Multiple words in the search terms are ANDed together
+- Provider types include: Physician, Organization, Individual, etc.
+
+### Medicare Provider Search
+- The data is from the 2023 Medicare Physician & Other Practitioners dataset
+- Place of service codes: "F" for facility, "O" for office
+- Drug indicator "Y" indicates the service involves a drug
+- All monetary amounts are in USD
+- Geographic codes follow standard state/county/ZIP code formats
+- Results are limited to 5000 items per request
 
 ## Terms of Service
-This service is provided "as is" and free of charge. See the [NLM FAQ](https://clinicaltables.nlm.nih.gov/faq.html) for more details.
+
+This server is provided as-is, without any warranty. The data is sourced from the National Library of Medicine and Centers for Medicare & Medicaid Services. Please refer to their respective terms of service for usage restrictions and requirements.
