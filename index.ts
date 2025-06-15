@@ -354,14 +354,17 @@ export const SEARCH_NPI_TOOL: Tool = {
 
 export const SEARCH_MEDICARE_TOOL: Tool = {
   name: "search_medicare_providers",
-  description: "Search Medicare Physician & Other Practitioners data for 2023. Provides information on services and procedures provided to Original Medicare Part B beneficiaries by physicians and other healthcare professionals. Supports two types of data: aggregated by geography and service, or by provider and service.",
+  description: "Search Medicare Physician & Other Practitioners data for 2023. Provides information on services and procedures provided to Original Medicare Part B beneficiaries by physicians and other healthcare professionals. Supports three types of data: aggregated by geography and service, by provider and service, or by provider only.",
   inputSchema: {
     type: "object",
     properties: {
       dataset_type: {
         type: "string",
-        description: "Type of dataset to search. 'geography_and_service' provides aggregated data by geographic area (National, State, County, or ZIP) showing total providers, services, and payments in each area. 'provider_and_service' provides individual provider-level data showing specific providers who performed services, their locations, and their service volumes.",
-        enum: ["geography_and_service", "provider_and_service"],
+        description: "Type of dataset to search. Each dataset serves a different analytical purpose:\n" +
+          "- 'geography_and_service': Aggregates data by geographic area (National, State, County, or ZIP) and service. Use this for regional healthcare analysis, understanding service patterns across different regions, and comparing healthcare metrics between areas.\n" +
+          "- 'provider_and_service': Shows individual provider-level data for specific services. Use this for finding specific providers who perform certain services, analyzing provider service patterns, and comparing provider performance for specific procedures.\n" +
+          "- 'provider': Provides comprehensive provider-level data aggregated across all their services. Use this for analyzing provider practice patterns, understanding patient demographics, and evaluating provider performance across their entire practice.",
+        enum: ["geography_and_service", "provider_and_service", "provider"],
         default: "geography_and_service"
       },
       hcpcs_code: {
@@ -411,7 +414,13 @@ export const SEARCH_MEDICARE_TOOL: Tool = {
               "Avg_Mdcr_Alowd_Amt",
               "Avg_Mdcr_Pymt_Amt",
               "Rndrng_Prvdr_Last_Org_Name",
-              "Rndrng_Prvdr_Type"
+              "Rndrng_Prvdr_Type",
+              "Tot_HCPCS_Cds",
+              "Tot_Sbmtd_Chrg",
+              "Tot_Mdcr_Alowd_Amt",
+              "Tot_Mdcr_Pymt_Amt",
+              "Bene_Avg_Age",
+              "Bene_Avg_Risk_Scre"
             ]
           },
           direction: {
@@ -432,7 +441,7 @@ export const SEARCH_MEDICARE_TOOL: Tool = {
         items: {
           type: "object",
           properties: {
-            // Common fields for both datasets
+            // Common fields for all datasets
             hcpcs_code: { type: "string", description: "HCPCS code" },
             hcpcs_desc: { type: "string", description: "HCPCS description" },
             hcpcs_drug_ind: { type: "string", description: "HCPCS drug indicator" },
@@ -458,7 +467,29 @@ export const SEARCH_MEDICARE_TOOL: Tool = {
             provider_state: { type: "string", description: "Provider's state" },
             provider_zip: { type: "string", description: "Provider's ZIP code" },
             provider_country: { type: "string", description: "Provider's country" },
-            medicare_participating: { type: "string", description: "Medicare participating indicator" }
+            medicare_participating: { type: "string", description: "Medicare participating indicator" },
+            // Provider-only dataset specific fields
+            total_hcpcs_codes: { type: "number", description: "Total number of unique HCPCS codes" },
+            total_submitted_charges: { type: "number", description: "Total submitted charges" },
+            total_medicare_allowed: { type: "number", description: "Total Medicare allowed amount" },
+            total_medicare_payment: { type: "number", description: "Total Medicare payment amount" },
+            total_medicare_standardized: { type: "number", description: "Total Medicare standardized amount" },
+            beneficiary_average_age: { type: "number", description: "Average age of beneficiaries" },
+            beneficiary_age_lt_65: { type: "number", description: "Number of beneficiaries under 65" },
+            beneficiary_age_65_74: { type: "number", description: "Number of beneficiaries aged 65-74" },
+            beneficiary_age_75_84: { type: "number", description: "Number of beneficiaries aged 75-84" },
+            beneficiary_age_gt_84: { type: "number", description: "Number of beneficiaries over 84" },
+            beneficiary_female_count: { type: "number", description: "Number of female beneficiaries" },
+            beneficiary_male_count: { type: "number", description: "Number of male beneficiaries" },
+            beneficiary_race_white: { type: "number", description: "Number of white beneficiaries" },
+            beneficiary_race_black: { type: "number", description: "Number of black beneficiaries" },
+            beneficiary_race_api: { type: "number", description: "Number of Asian/Pacific Islander beneficiaries" },
+            beneficiary_race_hispanic: { type: "number", description: "Number of Hispanic beneficiaries" },
+            beneficiary_race_native: { type: "number", description: "Number of Native American beneficiaries" },
+            beneficiary_race_other: { type: "number", description: "Number of other race beneficiaries" },
+            beneficiary_dual_count: { type: "number", description: "Number of dual-eligible beneficiaries" },
+            beneficiary_non_dual_count: { type: "number", description: "Number of non-dual-eligible beneficiaries" },
+            beneficiary_average_risk_score: { type: "number", description: "Average risk score of beneficiaries" }
           }
         }
       },
@@ -533,72 +564,147 @@ export const SEARCH_MEDICARE_TOOL: Tool = {
       }
     },
     {
-      name: "Search for provider by NPI (provider_and_service dataset)",
+      name: "Search for provider by NPI (provider dataset)",
       input: {
-        dataset_type: "provider_and_service",
-        keyword: "1003000142",
+        dataset_type: "provider",
+        keyword: "1003000126",
         size: 2
       },
       output: {
         total: 2,
         providers: [
           {
-            hcpcs_code: "27096",
-            hcpcs_desc: "Injection of anesthetic or steroid into joint between lower spine and hip bone using imaging guidance",
-            hcpcs_drug_ind: "N",
-            place_of_service: "F",
-            total_beneficiaries: 11,
-            total_services: 12,
-            total_beneficiary_days: 12,
-            avg_submitted_charge: 254.83,
-            avg_medicare_allowed: 112.87,
-            avg_medicare_payment: 81.88,
-            avg_medicare_standardized: 84.34,
-            npi: "1003000142",
-            provider_name: "Khalil, Rashid",
-            provider_type: "Anesthesiology",
-            provider_address: "4126 N Holland Sylvania Rd",
-            provider_city: "Toledo",
-            provider_state: "OH",
-            provider_zip: "43623",
+            npi: "1003000126",
+            provider_name: "ENKESHAFI, ARDALAN",
+            provider_type: "Hospitalist",
+            provider_address: "6410 Rockledge Dr Ste 304",
+            provider_city: "Bethesda",
+            provider_state: "MD",
+            provider_zip: "20817",
             provider_country: "US",
-            medicare_participating: "Y"
+            medicare_participating: "Y",
+            total_hcpcs_codes: 11,
+            total_beneficiaries: 344,
+            total_services: 814,
+            total_submitted_charges: 173087.77,
+            total_medicare_allowed: 78590.79,
+            total_medicare_payment: 62198.36,
+            total_medicare_standardized: 56080.64,
+            beneficiary_average_age: 78,
+            beneficiary_age_lt_65: 28,
+            beneficiary_age_65_74: 84,
+            beneficiary_age_75_84: 134,
+            beneficiary_age_gt_84: 98,
+            beneficiary_female_count: 183,
+            beneficiary_male_count: 161,
+            beneficiary_race_white: 242,
+            beneficiary_race_black: 53,
+            beneficiary_race_api: 26,
+            beneficiary_dual_count: 62,
+            beneficiary_non_dual_count: 282,
+            beneficiary_average_risk_score: 2.7545
           }
         ]
       }
     },
     {
-      name: "Search for providers by specialty (provider_and_service dataset)",
+      name: "Search for providers by specialty (provider dataset)",
       input: {
-        dataset_type: "provider_and_service",
-        hcpcs_code: "99213",
-        keyword: "Neurology",
-        size: 2
+        dataset_type: "provider",
+        keyword: "Hospitalist",
+        size: 2,
+        sort: {
+          field: "Tot_Srvcs",
+          direction: "desc"
+        }
       },
       output: {
         total: 2,
         providers: [
           {
-            hcpcs_code: "99213",
-            hcpcs_desc: "Established patient office or other outpatient visit, 20-29 minutes",
-            hcpcs_drug_ind: "N",
-            place_of_service: "O",
-            total_beneficiaries: 20,
-            total_services: 25,
-            total_beneficiary_days: 25,
-            avg_submitted_charge: 191.00,
-            avg_medicare_allowed: 71.12,
-            avg_medicare_payment: 57.01,
-            avg_medicare_standardized: 52.29,
-            npi: "1003006198",
-            provider_name: "Cinski, Laura A",
-            provider_type: "Neurology",
-            provider_address: "8081 Innovation Park Dr Ste 900",
-            provider_city: "Fairfax",
-            provider_state: "VA",
-            provider_zip: "22031",
+            npi: "1992932214",
+            provider_name: "Makhlouf, Tony",
+            provider_type: "Hospitalist",
+            provider_address: "143 Parrot Ln",
+            provider_city: "Simi Valley",
+            provider_state: "CA",
+            provider_zip: "93065",
             provider_country: "US",
-            medicare_participating: "Y"
+            medicare_participating: "Y",
+            total_hcpcs_codes: 57,
+            total_beneficiaries: 653,
+            total_services: 298066,
+            total_submitted_charges: 7256031.77,
+            total_medicare_allowed: 3671684.59,
+            total_medicare_payment: 2905424.95,
+            total_medicare_standardized: 2866216.13,
+            beneficiary_average_age: 76,
+            beneficiary_age_lt_65: 37,
+            beneficiary_age_65_74: 257,
+            beneficiary_age_75_84: 257,
+            beneficiary_age_gt_84: 102,
+            beneficiary_female_count: 463,
+            beneficiary_male_count: 190,
+            beneficiary_race_white: 481,
+            beneficiary_race_black: "",
+            beneficiary_race_api: 33,
+            beneficiary_race_hispanic: 100,
+            beneficiary_race_native: "",
+            beneficiary_race_other: "",
+            beneficiary_dual_count: 158,
+            beneficiary_non_dual_count: 495,
+            beneficiary_average_risk_score: 1.491
+          }
+        ]
+      }
+    },
+    {
+      name: "Search for providers by state with highest Medicare payments (provider dataset)",
+      input: {
+        dataset_type: "provider",
+        geo_code: "CA",
+        size: 2,
+        sort: {
+          field: "Tot_Mdcr_Pymt_Amt",
+          direction: "desc"
+        }
+      },
+      output: {
+        total: 2,
+        providers: [
+          {
+            npi: "1629407069",
+            provider_name: "Exact Sciences Laboratories, Llc",
+            provider_type: "Clinical Laboratory",
+            provider_address: "145 E Badger Rd Ste 100",
+            provider_city: "Madison",
+            provider_state: "WI",
+            provider_zip: "53713",
+            provider_country: "US",
+            medicare_participating: "Y",
+            total_hcpcs_codes: 1,
+            total_beneficiaries: 600418,
+            total_services: 600418,
+            total_submitted_charges: 408884658,
+            total_medicare_allowed: 299319622.61,
+            total_medicare_payment: 299319622.61,
+            total_medicare_standardized: 299421723.46,
+            beneficiary_average_age: 71,
+            beneficiary_age_lt_65: 49483,
+            beneficiary_age_65_74: 382715,
+            beneficiary_age_75_84: 163238,
+            beneficiary_age_gt_84: 4982,
+            beneficiary_female_count: 364244,
+            beneficiary_male_count: 236174,
+            beneficiary_race_white: 510661,
+            beneficiary_race_black: 27747,
+            beneficiary_race_api: 13777,
+            beneficiary_race_hispanic: 23680,
+            beneficiary_race_native: 1002,
+            beneficiary_race_other: 23551,
+            beneficiary_dual_count: 72341,
+            beneficiary_non_dual_count: 528077,
+            beneficiary_average_risk_score: 0.7976
           }
         ]
       }
@@ -659,6 +765,49 @@ interface MedicareProviderIndividualResponse {
   Avg_Mdcr_Alowd_Amt: number;
   Avg_Mdcr_Pymt_Amt: number;
   Avg_Mdcr_Stdzd_Amt: number;
+}
+
+interface MedicareProviderResponse {
+  Rndrng_NPI: string;
+  Rndrng_Prvdr_Last_Org_Name: string;
+  Rndrng_Prvdr_First_Name: string;
+  Rndrng_Prvdr_MI: string;
+  Rndrng_Prvdr_Crdntls: string;
+  Rndrng_Prvdr_Ent_Cd: string;
+  Rndrng_Prvdr_St1: string;
+  Rndrng_Prvdr_St2: string;
+  Rndrng_Prvdr_City: string;
+  Rndrng_Prvdr_State_Abrvtn: string;
+  Rndrng_Prvdr_State_FIPS: string;
+  Rndrng_Prvdr_Zip5: string;
+  Rndrng_Prvdr_RUCA: string;
+  Rndrng_Prvdr_RUCA_Desc: string;
+  Rndrng_Prvdr_Cntry: string;
+  Rndrng_Prvdr_Type: string;
+  Rndrng_Prvdr_Mdcr_Prtcptg_Ind: string;
+  Tot_HCPCS_Cds: string;
+  Tot_Benes: number;
+  Tot_Srvcs: number;
+  Tot_Sbmtd_Chrg: number;
+  Tot_Mdcr_Alowd_Amt: number;
+  Tot_Mdcr_Pymt_Amt: number;
+  Tot_Mdcr_Stdzd_Amt: number;
+  Bene_Avg_Age: number;
+  Bene_Age_LT_65_Cnt: number;
+  Bene_Age_65_74_Cnt: number;
+  Bene_Age_75_84_Cnt: number;
+  Bene_Age_GT_84_Cnt: number;
+  Bene_Feml_Cnt: number;
+  Bene_Male_Cnt: number;
+  Bene_Race_Wht_Cnt: number;
+  Bene_Race_Black_Cnt: number;
+  Bene_Race_API_Cnt: number;
+  Bene_Race_Hspnc_Cnt: number;
+  Bene_Race_NatInd_Cnt: number;
+  Bene_Race_Othr_Cnt: number;
+  Bene_Dual_Cnt: number;
+  Bene_Ndual_Cnt: number;
+  Bene_Avg_Risk_Scre: number;
 }
 
 async function searchICD10CM(
@@ -808,7 +957,9 @@ async function searchMedicare(
   // Select dataset UUID based on type
   const datasetUuid = dataset_type === "geography_and_service" 
     ? "ddee9e22-7889-4bef-975a-7853e4cd0fbb"  // Geography dataset
-    : "0e9f2f2b-7bf9-451a-912c-e02e654dd725"; // Provider dataset
+    : dataset_type === "provider_and_service"
+    ? "0e9f2f2b-7bf9-451a-912c-e02e654dd725"  // Provider and service dataset
+    : "8889d81e-2ee7-448f-8713-f071038289b5"; // Provider dataset
 
   const query = new URLSearchParams({
     size: Math.min(size, 5000).toString(),
@@ -820,7 +971,7 @@ async function searchMedicare(
   }
 
   // Add filters using the JSONAPI filter syntax
-  if (hcpcs_code) {
+  if (hcpcs_code && dataset_type !== "provider") {
     query.append("filter[filter-1][condition][path]", "HCPCS_Cd");
     query.append("filter[filter-1][condition][operator]", "=");
     query.append("filter[filter-1][condition][value]", hcpcs_code);
@@ -840,7 +991,7 @@ async function searchMedicare(
     }
   }
 
-  if (place_of_service) {
+  if (place_of_service && dataset_type !== "provider") {
     query.append("filter[filter-4][condition][path]", "Place_Of_Srvc");
     query.append("filter[filter-4][condition][operator]", "=");
     query.append("filter[filter-4][condition][value]", place_of_service);
@@ -857,29 +1008,63 @@ async function searchMedicare(
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const data = await response.json() as (MedicareProviderGeographyResponse[] | MedicareProviderIndividualResponse[]);
+    const data = await response.json() as (MedicareProviderGeographyResponse[] | MedicareProviderIndividualResponse[] | MedicareProviderResponse[]);
 
     return {
       total: data.length,
       providers: data.map((item) => {
-        const baseProvider = {
-          hcpcs_code: item.HCPCS_Cd,
-          hcpcs_desc: item.HCPCS_Desc,
-          hcpcs_drug_ind: item.HCPCS_Drug_Ind,
-          place_of_service: item.Place_Of_Srvc,
-          total_beneficiaries: item.Tot_Benes,
-          total_services: item.Tot_Srvcs,
-          total_beneficiary_days: item.Tot_Bene_Day_Srvcs,
-          avg_submitted_charge: item.Avg_Sbmtd_Chrg,
-          avg_medicare_allowed: item.Avg_Mdcr_Alowd_Amt,
-          avg_medicare_payment: item.Avg_Mdcr_Pymt_Amt,
-          avg_medicare_standardized: item.Avg_Mdcr_Stdzd_Amt
-        };
+        if (dataset_type === "provider") {
+          const providerItem = item as MedicareProviderResponse;
+          return {
+            npi: providerItem.Rndrng_NPI,
+            provider_name: `${providerItem.Rndrng_Prvdr_Last_Org_Name}, ${providerItem.Rndrng_Prvdr_First_Name}${providerItem.Rndrng_Prvdr_MI ? ` ${providerItem.Rndrng_Prvdr_MI}` : ''}`,
+            provider_type: providerItem.Rndrng_Prvdr_Type,
+            provider_address: providerItem.Rndrng_Prvdr_St1,
+            provider_city: providerItem.Rndrng_Prvdr_City,
+            provider_state: providerItem.Rndrng_Prvdr_State_Abrvtn,
+            provider_zip: providerItem.Rndrng_Prvdr_Zip5,
+            provider_country: providerItem.Rndrng_Prvdr_Cntry,
+            medicare_participating: providerItem.Rndrng_Prvdr_Mdcr_Prtcptg_Ind,
+            total_hcpcs_codes: parseInt(providerItem.Tot_HCPCS_Cds),
+            total_beneficiaries: providerItem.Tot_Benes,
+            total_services: providerItem.Tot_Srvcs,
+            total_submitted_charges: providerItem.Tot_Sbmtd_Chrg,
+            total_medicare_allowed: providerItem.Tot_Mdcr_Alowd_Amt,
+            total_medicare_payment: providerItem.Tot_Mdcr_Pymt_Amt,
+            total_medicare_standardized: providerItem.Tot_Mdcr_Stdzd_Amt,
+            beneficiary_average_age: providerItem.Bene_Avg_Age,
+            beneficiary_age_lt_65: providerItem.Bene_Age_LT_65_Cnt,
+            beneficiary_age_65_74: providerItem.Bene_Age_65_74_Cnt,
+            beneficiary_age_75_84: providerItem.Bene_Age_75_84_Cnt,
+            beneficiary_age_gt_84: providerItem.Bene_Age_GT_84_Cnt,
+            beneficiary_female_count: providerItem.Bene_Feml_Cnt,
+            beneficiary_male_count: providerItem.Bene_Male_Cnt,
+            beneficiary_race_white: providerItem.Bene_Race_Wht_Cnt,
+            beneficiary_race_black: providerItem.Bene_Race_Black_Cnt,
+            beneficiary_race_api: providerItem.Bene_Race_API_Cnt,
+            beneficiary_race_hispanic: providerItem.Bene_Race_Hspnc_Cnt,
+            beneficiary_race_native: providerItem.Bene_Race_NatInd_Cnt,
+            beneficiary_race_other: providerItem.Bene_Race_Othr_Cnt,
+            beneficiary_dual_count: providerItem.Bene_Dual_Cnt,
+            beneficiary_non_dual_count: providerItem.Bene_Ndual_Cnt,
+            beneficiary_average_risk_score: providerItem.Bene_Avg_Risk_Scre
+          };
+        }
 
         if (dataset_type === "geography_and_service") {
           const geoItem = item as MedicareProviderGeographyResponse;
           return {
-            ...baseProvider,
+            hcpcs_code: geoItem.HCPCS_Cd,
+            hcpcs_desc: geoItem.HCPCS_Desc,
+            hcpcs_drug_ind: geoItem.HCPCS_Drug_Ind,
+            place_of_service: geoItem.Place_Of_Srvc,
+            total_beneficiaries: geoItem.Tot_Benes,
+            total_services: geoItem.Tot_Srvcs,
+            total_beneficiary_days: geoItem.Tot_Bene_Day_Srvcs,
+            avg_submitted_charge: geoItem.Avg_Sbmtd_Chrg,
+            avg_medicare_allowed: geoItem.Avg_Mdcr_Alowd_Amt,
+            avg_medicare_payment: geoItem.Avg_Mdcr_Pymt_Amt,
+            avg_medicare_standardized: geoItem.Avg_Mdcr_Stdzd_Amt,
             geo_level: geoItem.Rndrng_Prvdr_Geo_Lvl,
             geo_code: geoItem.Rndrng_Prvdr_Geo_Cd,
             geo_desc: geoItem.Rndrng_Prvdr_Geo_Desc,
@@ -888,7 +1073,17 @@ async function searchMedicare(
         } else {
           const providerItem = item as MedicareProviderIndividualResponse;
           return {
-            ...baseProvider,
+            hcpcs_code: providerItem.HCPCS_Cd,
+            hcpcs_desc: providerItem.HCPCS_Desc,
+            hcpcs_drug_ind: providerItem.HCPCS_Drug_Ind,
+            place_of_service: providerItem.Place_Of_Srvc,
+            total_beneficiaries: providerItem.Tot_Benes,
+            total_services: providerItem.Tot_Srvcs,
+            total_beneficiary_days: providerItem.Tot_Bene_Day_Srvcs,
+            avg_submitted_charge: providerItem.Avg_Sbmtd_Chrg,
+            avg_medicare_allowed: providerItem.Avg_Mdcr_Alowd_Amt,
+            avg_medicare_payment: providerItem.Avg_Mdcr_Pymt_Amt,
+            avg_medicare_standardized: providerItem.Avg_Mdcr_Stdzd_Amt,
             npi: providerItem.Rndrng_NPI,
             provider_name: `${providerItem.Rndrng_Prvdr_Last_Org_Name}, ${providerItem.Rndrng_Prvdr_First_Name}${providerItem.Rndrng_Prvdr_MI ? ` ${providerItem.Rndrng_Prvdr_MI}` : ''}`,
             provider_type: providerItem.Rndrng_Prvdr_Type,

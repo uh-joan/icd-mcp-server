@@ -100,24 +100,26 @@ curl -X POST http://localhost:3005/search_npi_providers \
 
 ### Medicare Provider Search
 
-The `search_medicare_providers` tool provides access to Medicare Physician & Other Practitioners data for 2023. This data includes information about services and procedures provided to Original Medicare Part B beneficiaries. The tool supports two types of data:
-- `geography_and_service`: Aggregated data by geographic area (National, State, County, or ZIP) showing total providers, services, and payments in each area
-- `provider_and_service`: Individual provider-level data showing specific providers who performed services, their locations, and their service volumes
+The `search_medicare_providers` tool provides access to Medicare Physician & Other Practitioners data for 2023. This data includes information about services and procedures provided to Original Medicare Part B beneficiaries. The tool supports three types of data:
+- `geography_and_service`: Aggregates data by geographic area (National, State, County, or ZIP) and service. Use this for regional healthcare analysis, understanding service patterns across different regions, and comparing healthcare metrics between areas.
+- `provider_and_service`: Shows individual provider-level data for specific services. Use this for finding specific providers who perform certain services, analyzing provider service patterns, and comparing provider performance for specific procedures.
+- `provider`: Provides comprehensive provider-level data aggregated across all their services. Use this for analyzing provider practice patterns, understanding patient demographics, and evaluating provider performance across their entire practice.
 
 #### Parameters
 
 - `dataset_type` (string, default: "geography_and_service"): Type of dataset to search. Options:
-  - "geography_and_service": Aggregated data by geographic area
-  - "provider_and_service": Individual provider-level data
-- `hcpcs_code` (string): Healthcare Common Procedure Coding System (HCPCS) code
+  - "geography_and_service": Aggregated data by geographic area and service
+  - "provider_and_service": Individual provider-level data for specific services
+  - "provider": Provider-level data aggregated across all services
+- `hcpcs_code` (string): Healthcare Common Procedure Coding System (HCPCS) code (not applicable for provider dataset)
 - `geo_level` (string): Geographic level of data ("National", "State", "County", "Zip") - only for geography_and_service dataset
 - `geo_code` (string): Geographic code (state code, county code, or ZIP code) - only for geography_and_service dataset
-- `place_of_service` (string): Place of service code ("F" for facility, "O" for office)
+- `place_of_service` (string): Place of service code ("F" for facility, "O" for office) (not applicable for provider dataset)
 - `size` (number): Number of results to return (default: 10, max: 5000)
 - `offset` (number): Starting result number for pagination (default: 0)
 - `keyword` (string): Search term for quick full-text search across all fields
 - `sort` (object): Sort results by field
-  - `field`: Field to sort by (e.g., "Tot_Srvcs", "Avg_Mdcr_Pymt_Amt", "Rndrng_Prvdr_State_Abrvtn")
+  - `field`: Field to sort by (e.g., "Tot_Srvcs", "Avg_Mdcr_Pymt_Amt", "Rndrng_Prvdr_State_Abrvtn", "Tot_Mdcr_Pymt_Amt")
   - `direction`: Sort direction ("asc" or "desc")
 
 #### Example Queries
@@ -145,26 +147,44 @@ curl -X POST http://localhost:3005/search_medicare_providers \
   }'
 ```
 
-3. Search for provider by NPI (provider_and_service dataset):
+3. Search for provider by NPI (provider dataset):
 ```bash
 curl -X POST http://localhost:3005/search_medicare_providers \
   -H "Content-Type: application/json" \
   -d '{
-    "dataset_type": "provider_and_service",
-    "keyword": "1003000142",
+    "dataset_type": "provider",
+    "keyword": "1003000126",
     "size": 2
   }'
 ```
 
-4. Search for providers by specialty (provider_and_service dataset):
+4. Search for providers by specialty (provider dataset):
 ```bash
 curl -X POST http://localhost:3005/search_medicare_providers \
   -H "Content-Type: application/json" \
   -d '{
-    "dataset_type": "provider_and_service",
-    "hcpcs_code": "99213",
-    "keyword": "Neurology",
-    "size": 2
+    "dataset_type": "provider",
+    "keyword": "Hospitalist",
+    "size": 2,
+    "sort": {
+      "field": "Tot_Srvcs",
+      "direction": "desc"
+    }
+  }'
+```
+
+5. Search for providers by state with highest Medicare payments (provider dataset):
+```bash
+curl -X POST http://localhost:3005/search_medicare_providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset_type": "provider",
+    "geo_code": "CA",
+    "size": 2,
+    "sort": {
+      "field": "Tot_Mdcr_Pymt_Amt",
+      "direction": "desc"
+    }
   }'
 ```
 
