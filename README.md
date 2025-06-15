@@ -1,23 +1,21 @@
-# ICD-10-CM and NPI MCP Server
+# Healthcare Data MCP Server
 
-This server provides access to ICD-10-CM codes and National Provider Identifier (NPI) data through a Model Context Protocol (MCP) interface. It also includes Medicare provider data for 2023.
+This server provides access to healthcare data through three main tools:
+
+1. `nlm_search_icd10`: Search for ICD-10-CM codes using the National Library of Medicine (NLM) API
+2. `nlm_search_npi_providers`: Search for healthcare providers using the National Library of Medicine's (NLM) National Provider Identifier (NPI) database
+3. `cms_search_providers`: Search Medicare Physician & Other Practitioners data for 2023 using the Centers for Medicare & Medicaid Services (CMS) database
 
 ## About this Server
-- **Project:** `icd-mcp-server`
+- **Project:** `healthcare_data_mcp_server`
 - **Version:** 0.1
 - **License:** MIT
 
-## Available Tools
+## Tool Descriptions
 
-1. `search_icd10cm_codes`: Search for ICD-10-CM codes using the NLM API
-2. `search_npi_providers`: Search for healthcare providers using the NPI database
-3. `search_medicare_providers`: Search Medicare Physician & Other Practitioners data for 2023
+### NLM ICD-10-CM Search
 
-## API Details
-
-### ICD-10-CM Search
-
-The `search_icd10cm_codes` tool provides access to the National Library of Medicine's (NLM) ICD-10-CM code database.
+The `nlm_search_icd10` tool provides access to the National Library of Medicine's (NLM) ICD-10-CM code database.
 
 #### Parameters
 
@@ -35,7 +33,7 @@ The `search_icd10cm_codes` tool provides access to the National Library of Medic
 
 1. Search for tuberculosis-related diagnoses:
 ```bash
-curl -X POST http://localhost:3005/search_icd10cm_codes \
+curl -X POST http://localhost:3005/nlm_search_icd10 \
   -H "Content-Type: application/json" \
   -d '{
     "terms": "tuberc"
@@ -44,7 +42,7 @@ curl -X POST http://localhost:3005/search_icd10cm_codes \
 
 2. Search for specific respiratory tuberculosis diagnoses:
 ```bash
-curl -X POST http://localhost:3005/search_icd10cm_codes \
+curl -X POST http://localhost:3005/nlm_search_icd10 \
   -H "Content-Type: application/json" \
   -d '{
     "terms": "tuberc",
@@ -52,9 +50,9 @@ curl -X POST http://localhost:3005/search_icd10cm_codes \
   }'
 ```
 
-### NPI Provider Search
+### NLM NPI Provider Search
 
-The `search_npi_providers` tool provides access to the National Provider Identifier (NPI) database, allowing searches for healthcare providers by name, location, provider type, and other criteria.
+The `nlm_search_npi_providers` tool provides access to the National Library of Medicine's (NLM) National Provider Identifier (NPI) database, allowing searches for healthcare providers by name, location, provider type, and other criteria.
 
 #### Parameters
 
@@ -75,7 +73,7 @@ The `search_npi_providers` tool provides access to the National Provider Identif
 
 1. Search for providers in Bethesda:
 ```bash
-curl -X POST http://localhost:3005/search_npi_providers \
+curl -X POST http://localhost:3005/nlm_search_npi_providers \
   -H "Content-Type: application/json" \
   -d '{
     "terms": "john",
@@ -87,7 +85,7 @@ curl -X POST http://localhost:3005/search_npi_providers \
 
 2. Search for organizations with detailed address:
 ```bash
-curl -X POST http://localhost:3005/search_npi_providers \
+curl -X POST http://localhost:3005/nlm_search_npi_providers \
   -H "Content-Type: application/json" \
   -d '{
     "terms": "hospital",
@@ -98,9 +96,9 @@ curl -X POST http://localhost:3005/search_npi_providers \
   }'
 ```
 
-### Medicare Provider Search
+### CMS Medicare Provider Search
 
-The `search_medicare_providers` tool provides access to Medicare Physician & Other Practitioners data for 2023. This data includes information about services and procedures provided to Original Medicare Part B beneficiaries. The tool supports three types of data:
+The `cms_search_providers` tool provides access to Medicare Physician & Other Practitioners data for 2023 using the Centers for Medicare & Medicaid Services (CMS) database. This data includes information about services and procedures provided to Original Medicare Part B beneficiaries. The tool supports three types of data:
 - `geography_and_service`: Aggregates data by geographic area (National, State, County, or ZIP) and service. Use this for regional healthcare analysis, understanding service patterns across different regions, and comparing healthcare metrics between areas.
 - `provider_and_service`: Shows individual provider-level data for specific services. Use this for finding specific providers who perform certain services, analyzing provider service patterns, and comparing provider performance for specific procedures.
 - `provider`: Provides comprehensive provider-level data aggregated across all their services. Use this for analyzing provider practice patterns, understanding patient demographics, and evaluating provider performance across their entire practice.
@@ -126,7 +124,7 @@ The `search_medicare_providers` tool provides access to Medicare Physician & Oth
 
 1. Search for office visit codes by state (geography_and_service dataset):
 ```bash
-curl -X POST http://localhost:3005/search_medicare_providers \
+curl -X POST http://localhost:3005/cms_search_providers \
   -H "Content-Type: application/json" \
   -d '{
     "dataset_type": "geography_and_service",
@@ -138,7 +136,7 @@ curl -X POST http://localhost:3005/search_medicare_providers \
 
 2. Search for providers performing specific service (provider_and_service dataset):
 ```bash
-curl -X POST http://localhost:3005/search_medicare_providers \
+curl -X POST http://localhost:3005/cms_search_providers \
   -H "Content-Type: application/json" \
   -d '{
     "dataset_type": "provider_and_service",
@@ -149,7 +147,7 @@ curl -X POST http://localhost:3005/search_medicare_providers \
 
 3. Search for provider by NPI (provider dataset):
 ```bash
-curl -X POST http://localhost:3005/search_medicare_providers \
+curl -X POST http://localhost:3005/cms_search_providers \
   -H "Content-Type: application/json" \
   -d '{
     "dataset_type": "provider",
@@ -160,7 +158,7 @@ curl -X POST http://localhost:3005/search_medicare_providers \
 
 4. Search for providers by specialty (provider dataset):
 ```bash
-curl -X POST http://localhost:3005/search_medicare_providers \
+curl -X POST http://localhost:3005/cms_search_providers \
   -H "Content-Type: application/json" \
   -d '{
     "dataset_type": "provider",
@@ -175,7 +173,7 @@ curl -X POST http://localhost:3005/search_medicare_providers \
 
 5. Search for providers by state with highest Medicare payments (provider dataset):
 ```bash
-curl -X POST http://localhost:3005/search_medicare_providers \
+curl -X POST http://localhost:3005/cms_search_providers \
   -H "Content-Type: application/json" \
   -d '{
     "dataset_type": "provider",
@@ -188,6 +186,12 @@ curl -X POST http://localhost:3005/search_medicare_providers \
   }'
 ```
 
+## API Endpoints
+
+- `POST /nlm_search_icd10`
+- `POST /nlm_search_npi_providers`
+- `POST /cms_search_providers`
+
 ## Usage
 
 ### HTTP Mode
@@ -199,9 +203,9 @@ USE_HTTP=true PORT=3005 npm start
 ```
 
 The server will be available at `http://localhost:3005` with the following endpoints:
-- `POST /search_icd10cm_codes`
-- `POST /search_npi_providers`
-- `POST /search_medicare_providers`
+- `POST /nlm_search_icd10`
+- `POST /nlm_search_npi_providers`
+- `POST /cms_search_providers`
 - `GET /health` (health check endpoint)
 
 ### MCP Mode

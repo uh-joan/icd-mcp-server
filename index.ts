@@ -75,8 +75,8 @@ const NPI_API_BASE_URL = "https://clinicaltables.nlm.nih.gov/api/npi_org/v3";
 
 // Tool definition for ICD-10-CM search
 const SEARCH_ICD10CM_TOOL = {
-  name: "search_icd10cm_codes",
-  description: "Search for ICD-10-CM codes using the NLM API",
+  name: "nlm_search_icd10",
+  description: "Search for ICD-10-CM codes using the National Library of Medicine (NLM) API",
   input_schema: {
     type: "object",
   properties: {
@@ -129,8 +129,8 @@ const SEARCH_ICD10CM_TOOL = {
 };
 
 export const SEARCH_NPI_TOOL: Tool = {
-  name: "search_npi_providers",
-  description: "Search for healthcare providers using the National Provider Identifier (NPI) database. Supports filtering by name, location, provider type, and other criteria.",
+  name: "nlm_search_npi_providers",
+  description: "Search for healthcare providers using the National Library of Medicine's (NLM) National Provider Identifier (NPI) database. Supports filtering by name, location, provider type, and other criteria.",
   inputSchema: {
     type: "object",
     properties: {
@@ -353,8 +353,8 @@ export const SEARCH_NPI_TOOL: Tool = {
 };
 
 export const SEARCH_MEDICARE_TOOL: Tool = {
-  name: "search_medicare_providers",
-  description: "Search Medicare Physician & Other Practitioners data for 2023. Provides information on services and procedures provided to Original Medicare Part B beneficiaries by physicians and other healthcare professionals. Supports three types of data: aggregated by geography and service, by provider and service, or by provider only.",
+  name: "cms_search_providers",
+  description: "Search Medicare Physician & Other Practitioners data for 2023 using the Centers for Medicare & Medicaid Services (CMS) database. This data includes information about services and procedures provided to Original Medicare Part B beneficiaries.",
   inputSchema: {
     type: "object",
     properties: {
@@ -1126,7 +1126,7 @@ async function runServer() {
         res.end(JSON.stringify({
           tools: [
             {
-              name: 'search_icd10cm_codes',
+              name: 'nlm_search_icd10',
               description: SEARCH_ICD10CM_TOOL.description,
               schema: [
                 { name: 'terms', type: 'string', description: 'Search terms (code or name) to find matches in the list' },
@@ -1154,11 +1154,11 @@ async function runServer() {
         try {
           data = await parseBody(req);
           const url = req.url || '';
-          if (url === '/search_icd10cm_codes') {
+          if (url === '/nlm_search_icd10') {
             result = await searchICD10CM(data.terms, data.maxList, data.count, data.offset, data.q, data.df, data.sf, data.cf, data.ef);
-          } else if (url === '/search_npi_providers') {
+          } else if (url === '/nlm_search_npi_providers') {
             result = await searchNPI(data.terms, data.maxList, data.count, data.offset, data.q, data.df, data.sf, data.cf, data.ef);
-          } else if (url === '/search_medicare_providers') {
+          } else if (url === '/cms_search_providers') {
             result = await searchMedicare(data.dataset_type, data.hcpcs_code, data.geo_level, data.geo_code, data.place_of_service, data.size, data.offset, data.keyword, data.sort);
           } else {
             sendError(res, 'Not found', 404);
@@ -1206,17 +1206,17 @@ async function runServer() {
     const args = request.params?.arguments ?? {};
     try {
       switch (toolName) {
-        case 'search_icd10cm_codes': {
+        case 'nlm_search_icd10': {
           const a = args as any;
           const result = await searchICD10CM(a.terms, a.maxList, a.count, a.offset, a.q, a.df, a.sf, a.cf, a.ef);
           return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: false };
         }
-        case 'search_npi_providers': {
+        case 'nlm_search_npi_providers': {
           const a = args as any;
           const result = await searchNPI(a.terms, a.maxList, a.count, a.offset, a.q, a.df, a.sf, a.cf, a.ef);
           return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: false };
         }
-        case 'search_medicare_providers': {
+        case 'cms_search_providers': {
           const a = args as any;
           const result = await searchMedicare(a.dataset_type, a.hcpcs_code, a.geo_level, a.geo_code, a.place_of_service, a.size, a.offset, a.keyword, a.sort);
           return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: false };

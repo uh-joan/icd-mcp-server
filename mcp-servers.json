@@ -1,6 +1,11 @@
 {
   "servers": [
     {
+      "name": "healthcare_data_mcp_server",
+      "repository": "https://github.com/uh-joan/healthcare_data_mcp_server",
+      "description": "Healthcare Data MCP Server providing access to NLM and CMS data sources"
+    },
+    {
       "name": "cortellis-mcp-server",
       "repository": "https://github.com/uh-joan/cortellis-mcp-server",
       "description": "Cortellis MCP Server"

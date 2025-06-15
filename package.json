@@ -1,31 +1,34 @@
 {
-  "name": "icd-mcp-server",
+  "name": "healthcare_data_mcp_server",
   "version": "0.1",
-  "description": "ICD-10-CM MCP server for code search.",
+  "description": "Healthcare Data MCP server providing access to NLM and CMS data sources.",
   "license": "MIT",
   "type": "module",
   "author": "Joan Saez-Pons (https://github.com/uh-joan)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/uh-joan/icd-mcp-server.git"
+    "url": "git+https://github.com/uh-joan/healthcare_data_mcp_server.git"
   },
   "bugs": {
-    "url": "https://github.com/uh-joan/icd-mcp-server/issues"
+    "url": "https://github.com/uh-joan/healthcare_data_mcp_server/issues"
   },
-  "homepage": "https://github.com/uh-joan/icd-mcp-server#readme",
+  "homepage": "https://github.com/uh-joan/healthcare_data_mcp_server#readme",
   "keywords": [
+    "healthcare",
+    "nlm",
+    "cms",
+    "medicare",
     "icd10cm",
-    "icd-10-cm",
+    "npi",
     "mcp",
     "api",
-    "server",
-    "code-search"
+    "server"
   ],
   "publishConfig": {
     "access": "public"
   },
   "bin": {
-    "icd-mcp-server": "dist/index.js"
+    "healthcare_data_mcp_server": "dist/index.js"
   },
   "files": [
     "dist",
